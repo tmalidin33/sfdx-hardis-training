@@ -1,3 +1,10 @@
+/**
+ * @description       : 
+ * @author            : thomas.malidin-delabriere@niji.fr
+ * @group             : 
+ * @last modified on  : 29-10-2026
+ * @last modified by  : thomas.malidin-delabriere@niji.fr
+**/
 public with sharing class InstallationScheduler {
     /**
      * Number of working days Helios keeps between the panels arriving and the crew
@@ -48,5 +55,30 @@ public with sharing class InstallationScheduler {
             ORDER BY Install_Date__c NULLS LAST
             LIMIT 200
         ];
+    }
+
+    /**
+     * The installations from the list that can be scheduled on the given day.
+     *
+     * @param installationIds the installations to check
+     * @param wanted the day the planner wants
+     * @return the ids that can take a crew that day
+     */
+    public static List<Id> schedulableOn(List<Id> installationIds, Date wanted) {
+        List<Id> allowed = new List<Id>();
+        for (Id installationId : installationIds) {
+            for (Panel_Batch__c batch : [
+                SELECT Arrival_Date__c
+                FROM Panel_Batch__c
+                WHERE Installation__c = :installationId
+                ORDER BY Arrival_Date__c DESC
+                LIMIT 1
+            ]) {
+                if (batch.Arrival_Date__c != null && wanted >= batch.Arrival_Date__c.addDays(PREPARATION_DAYS)) {
+                    allowed.add(installationId);
+                }
+            }
+        }
+        return allowed;
     }
 }
